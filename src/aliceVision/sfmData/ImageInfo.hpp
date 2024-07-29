@@ -215,9 +215,25 @@ class ImageInfo
         // 32767 = (2^15 - 1) - Maximum of a signed short: means there is no available focal length
         // 4294967295 = (2^32 - 1) - Maximum of a signed integer: means there is no available focal length
         //   -> might be truncated and/or rounded up to 4.29497e+06
-        else if (focalLength == USHRT_MAX || focalLength == SHRT_MAX || focalLength == UINT_MAX || focalLength == INT_MAX || focalLength == 4294970)
+        else if (focalLength == USHRT_MAX || focalLength == SHRT_MAX || focalLength == UINT_MAX ||
+                 focalLength == INT_MAX || focalLength == 4294970)
         {
             focalLength = -1;
+        }
+
+        // For DJI drones, the focal length may be expressed as a list (e.g. [50000,1000])
+        std::string focalLengthList = getMetadata({"focal_length"});
+        std::string focalLengthStr = "";
+
+        if (!focalLengthList.empty() && focalLengthList.find("[") == 0 &&
+            focalLengthList.find("]") == focalLengthList.size() - 1) {
+            std::size_t delimiterPosition = focalLengthList.find(",");
+            if (delimiterPosition != std::string::npos) {
+                focalLengthStr = focalLengthList.substr(1, delimiterPosition - 1);
+            }
+
+            // Focal length is provided in µm, hence the required division
+            focalLength = std::stod(focalLengthStr) / 1000;
         }
 
         // Might be available and more precise (especially if the focal length was initially retrieved from a string)
